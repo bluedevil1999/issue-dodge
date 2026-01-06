@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>이슈 회피 60초</title>
+  <title>이슈 회피 60초 — HARD</title>
   <style>
     :root { color-scheme: light dark; }
     body {
@@ -16,43 +16,21 @@
                   radial-gradient(900px 600px at 20% 80%, rgba(255,120,180,.12), transparent 55%),
                   linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.02));
     }
-    .wrap {
-      width: min(900px, 94vw);
-      display: grid;
-      gap: 12px;
-      position: relative;
-    }
-    .hud {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: center;
-    }
-    .stats {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      font-size: 14px;
-      opacity: .95;
-    }
+    .wrap { width: min(900px, 94vw); display: grid; gap: 12px; position: relative; }
+    .hud { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+    .stats { display: flex; gap: 10px; flex-wrap: wrap; font-size: 14px; opacity: .95; }
     .pill {
-      padding: 8px 10px;
-      border-radius: 999px;
+      padding: 8px 10px; border-radius: 999px;
       border: 1px solid rgba(127,127,127,.35);
       backdrop-filter: blur(6px);
       background: rgba(255,255,255,.06);
     }
     .btns { display: flex; gap: 8px; }
     button {
-      cursor: pointer;
-      border: 1px solid rgba(127,127,127,.35);
-      background: rgba(255,255,255,.06);
-      color: inherit;
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-weight: 650;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
+      cursor: pointer; border: 1px solid rgba(127,127,127,.35);
+      background: rgba(255,255,255,.06); color: inherit;
+      border-radius: 12px; padding: 10px 12px; font-weight: 650;
+      user-select: none; -webkit-tap-highlight-color: transparent;
     }
     button:hover { background: rgba(255,255,255,.10); }
     canvas {
@@ -62,27 +40,19 @@
       border: 1px solid rgba(127,127,127,.35);
       background: rgba(0,0,0,.35);
       box-shadow: 0 18px 45px rgba(0,0,0,.18);
-      touch-action: none; /* 중요: 모바일 드래그가 스크롤로 안 먹게 */
+      touch-action: none;
     }
     .help {
-      font-size: 13px;
-      opacity: .85;
-      line-height: 1.5;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
+      font-size: 13px; opacity: .85; line-height: 1.5;
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
     }
-    kbd {
+    kbd{
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
-      padding: 2px 6px;
-      border-radius: 6px;
+      font-size: 12px; padding: 2px 6px; border-radius: 6px;
       border: 1px solid rgba(127,127,127,.45);
       background: rgba(255,255,255,.06);
     }
 
-    /* 모바일 터치 컨트롤 */
     .touchbar {
       display: none;
       gap: 8px;
@@ -96,16 +66,11 @@
     }
     .touchhint { font-size: 12px; opacity: .9; }
     .touchbtns { display: flex; gap: 8px; }
-    .dashBtn {
-      padding: 10px 14px;
-      border-radius: 14px;
-      font-weight: 800;
-    }
+    .dashBtn { padding: 10px 14px; border-radius: 14px; font-weight: 800; }
     .dashBtn.active {
       background: rgba(255,230,160,.16);
       border-color: rgba(255,230,160,.45);
     }
-
     @media (max-width: 720px) {
       .hud { grid-template-columns: 1fr; }
       .btns { justify-content: flex-start; }
@@ -122,6 +87,7 @@
         <div class="pill">🔥 난이도: <span id="level">1</span></div>
         <div class="pill">💥 피격: <span id="hits">0</span></div>
         <div class="pill">🥇 최고: <span id="best">0</span></div>
+        <div class="pill">😈 모드: HARD</div>
       </div>
       <div class="btns">
         <button id="startBtn">시작</button>
@@ -129,7 +95,6 @@
       </div>
     </div>
 
-    <!-- 모바일: 터치바 -->
     <div class="touchbar" id="touchbar">
       <div class="touchhint">📱 터치: 화면을 <b>드래그</b>해서 이동</div>
       <div class="touchbtns">
@@ -137,14 +102,11 @@
       </div>
     </div>
 
-    <canvas id="game" width="960" height="540" aria-label="game canvas"></canvas>
+    <canvas id="game" width="960" height="540"></canvas>
 
     <div class="help">
-      PC 조작: <kbd>←</kbd>/<kbd>→</kbd> 또는 <kbd>A</kbd>/<kbd>D</kbd> 이동,
-      <kbd>Shift</kbd> 대시,
-      <kbd>P</kbd> 일시정지.
-      목표: <b>60초</b> 버티기. ☕ 먹으면 <b>2초 무적</b>.
-      (모바일은 드래그 이동 + DASH 버튼)
+      PC: <kbd>←</kbd>/<kbd>→</kbd> 또는 <kbd>A</kbd>/<kbd>D</kbd>, <kbd>Shift</kbd> 대시, <kbd>P</kbd> 일시정지.
+      모바일: 드래그 이동 + DASH 버튼. ☕ 먹으면 2초 무적.
     </div>
   </div>
 
@@ -162,7 +124,6 @@
     startBtn: document.getElementById("startBtn"),
     restartBtn: document.getElementById("restartBtn"),
     dashBtn: document.getElementById("dashBtn"),
-    touchbar: document.getElementById("touchbar"),
   };
 
   const W = canvas.width, H = canvas.height;
@@ -171,7 +132,8 @@
   const ISSUE_WORDS = [
     "마감", "실장님 호출", "갑자기 회의", "긴급 수정", "메일 폭탄", "리뷰 반려",
     "이해관계자 추가", "요구사항 변경", "데이터 안 맞음", "배포 장애", "QA 지옥",
-    "상무님 코멘트", "고객사 피드백", "범위 확장", "최종 최종 최종", "오늘까지"
+    "상무님 코멘트", "고객사 피드백", "범위 확장", "최종 최종 최종", "오늘까지",
+    "슬랙 멘션", "긴급 공지", "재요청", "우선순위 변경"
   ];
 
   const WIN_TITLE = "당신은 이슈를 보고도 웃을 수 있는 사람";
@@ -190,7 +152,7 @@
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = (arr) => arr[(Math.random() * arr.length) | 0];
 
-  // ====== Sound (Web Audio) ======
+  // ===== Sound (coffee pickup) =====
   let audioCtx = null;
   function ensureAudio() {
     if (audioCtx) return;
@@ -201,42 +163,34 @@
   function beepCoffee() {
     ensureAudio();
     if (!audioCtx) return;
-
-    // some browsers require resume after user gesture
     if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
 
     const t0 = audioCtx.currentTime;
     const out = audioCtx.createGain();
     out.gain.setValueAtTime(0.0001, t0);
-    out.gain.exponentialRampToValueAtTime(0.18, t0 + 0.01);
+    out.gain.exponentialRampToValueAtTime(0.20, t0 + 0.01);
     out.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
     out.connect(audioCtx.destination);
 
-    // 2-tone “sip” chord
     const o1 = audioCtx.createOscillator();
     const o2 = audioCtx.createOscillator();
     o1.type = "triangle";
     o2.type = "sine";
-
-    o1.frequency.setValueAtTime(740, t0);
-    o1.frequency.exponentialRampToValueAtTime(980, t0 + 0.12);
-
-    o2.frequency.setValueAtTime(440, t0);
-    o2.frequency.exponentialRampToValueAtTime(660, t0 + 0.12);
-
-    o1.connect(out);
-    o2.connect(out);
-    o1.start(t0);
-    o2.start(t0);
-    o1.stop(t0 + 0.23);
-    o2.stop(t0 + 0.23);
+    o1.frequency.setValueAtTime(760, t0);
+    o1.frequency.exponentialRampToValueAtTime(1040, t0 + 0.12);
+    o2.frequency.setValueAtTime(460, t0);
+    o2.frequency.exponentialRampToValueAtTime(700, t0 + 0.12);
+    o1.connect(out); o2.connect(out);
+    o1.start(t0); o2.start(t0);
+    o1.stop(t0 + 0.23); o2.stop(t0 + 0.23);
   }
 
-  // ====== localStorage best ======
-  const BEST_KEY = "vibe_dodge_best_v3";
+  // ===== Best score =====
+  const BEST_KEY = "vibe_dodge_best_hard_v1";
   let bestScore = Number(localStorage.getItem(BEST_KEY) || "0");
   ui.best.textContent = bestScore;
 
+  // ===== Game state =====
   const state = {
     running: false,
     paused: false,
@@ -249,7 +203,7 @@
     level: 1,
     shake: 0,
     slowMoUntil: 0,
-    coffeeFlashUntil: 0, // background tiny flash
+    coffeeFlashUntil: 0,
   };
 
   const input = {
@@ -263,10 +217,10 @@
   const player = {
     x: W / 2,
     y: GROUND_Y,
-    w: 40,
-    h: 22,
+    w: 34,       // HARD: 플레이어 조금 더 작게
+    h: 20,
     vx: 0,
-    speed: 460,
+    speed: 420,
     dashSpeed: 760,
     invulnUntil: 0,
   };
@@ -310,7 +264,7 @@
 
   function start() {
     if (state.running) return;
-    ensureAudio(); // init attempt
+    ensureAudio();
     state.running = true;
     state.paused = false;
     state.ended = false;
@@ -347,45 +301,26 @@
     }
   }
 
-  function spawnIssue(now, intensity) {
-    const size = rand(26, 44) + intensity * 18;
-    const x = rand(40, W - 40);
-    const y = -size - rand(0, 140);
-    const vy = rand(140, 220) + intensity * rand(160, 320);
-    issues.push({
-      x, y,
-      r: size,
-      vy,
-      word: pick(ISSUE_WORDS),
-      rot: rand(-0.8, 0.8),
-      spin: rand(-1.6, 1.6),
-      touched: false,
-    });
-  }
-
-  function spawnCoffee(now, intensity) {
-    const x = rand(50, W - 50);
-    const y = -40 - rand(0, 200);
-    const vy = rand(120, 190) + intensity * 120;
-    items.push({
-      kind: "coffee",
-      x, y,
-      r: 18,
-      vy,
-      rot: rand(-0.6, 0.6),
-      spin: rand(-1.2, 1.2),
-      taken: false,
-    });
-  }
-
+  // ===== HARD: 난이도 커브 (핵심 변경) =====
   function computeDifficulty(elapsedMs) {
     const p = clamp(elapsedMs / state.timeLimit, 0, 1);
-    state.level = 1 + Math.floor(p * 7);
-    return {
-      p,
-      spawnRate: 1.2 + p * 4.0,
-      maxIssues: 10 + Math.floor(p * 16),
-    };
+
+    // 레벨도 더 빠르게 올라가게
+    state.level = 1 + Math.floor(p * 11); // 1~12
+
+    // 스폰률 대폭 상승 (초반부터 체감)
+    const spawnRate = 2.6 + p * 7.8;   // issues/sec : 2.6 -> 10.4
+
+    // 화면에 쌓이는 이슈 수 상향
+    const maxIssues = 16 + Math.floor(p * 28); // 16 -> 44
+
+    // 속도 배율 (후반 폭주)
+    const speedMul = 1.25 + p * 1.15; // 1.25 -> 2.40
+
+    // 좌우 드리프트 강도
+    const driftMul = 0.85 + p * 1.25; // 0.85 -> 2.10
+
+    return { p, spawnRate, maxIssues, speedMul, driftMul };
   }
 
   function intersectsCircleRect(cx, cy, r, rx, ry, rw, rh) {
@@ -397,37 +332,86 @@
   }
 
   function awardPoints(intensity) {
-    state.score += 1 + Math.floor(intensity * 3);
+    // HARD: 점수는 더 잘 오르게 해서 “버틴 느낌” 유지
+    state.score += 2 + Math.floor(intensity * 4);
   }
 
   function hit(now) {
+    // HARD: 무적 프레임 짧게 (연속 맞는 건 방지하되, 덜 관대하게)
     if (now < player.invulnUntil) return;
+
     state.hits += 1;
-    state.shake = 10;
-    player.invulnUntil = now + 900;
-    state.slowMoUntil = now + 260;
-    state.score = Math.max(0, state.score - 12);
+    state.shake = 12;
+
+    player.invulnUntil = now + 650; // 기존보다 짧게
+    state.slowMoUntil = now + 180;  // 살짝만
+
+    state.score = Math.max(0, state.score - 18);
+  }
+
+  function spawnIssue(now, diff) {
+    // HARD: 크기 범위 + “작고 빠른 놈” 비중 증가
+    const smallFast = Math.random() < (0.55 + diff.p * 0.20); // 후반일수록 더
+    const baseR = smallFast ? rand(20, 32) : rand(28, 52);
+    const r = baseR + diff.p * (smallFast ? 6 : 14);
+
+    const x = rand(38, W - 38);
+    const y = -r - rand(0, 160);
+
+    // 속도: 기본 자체도 올리고, 후반 speedMul 적용
+    const vy0 = smallFast ? rand(240, 340) : rand(190, 290);
+    const vy = vy0 * diff.speedMul;
+
+    // 좌우 드리프트 (사인 기반 흔들림)
+    const driftAmp = (smallFast ? rand(16, 34) : rand(20, 46)) * diff.driftMul;
+    const driftSpd = rand(1.6, 3.2) + diff.p * 1.2;
+    const driftPhase = rand(0, Math.PI * 2);
+
+    issues.push({
+      x, y,
+      r,
+      vy,
+      word: pick(ISSUE_WORDS),
+      rot: rand(-0.8, 0.8),
+      spin: rand(-1.9, 1.9),
+      touched: false,
+      driftAmp,
+      driftSpd,
+      driftPhase,
+      x0: x,
+    });
+  }
+
+  function spawnCoffee(now, diff) {
+    const x = rand(50, W - 50);
+    const y = -40 - rand(0, 240);
+    const vy = (rand(140, 210) * (1.0 + diff.p * 0.25)); // 커피도 좀 빨라짐(잡기 어렵게)
+    items.push({
+      kind: "coffee",
+      x, y,
+      r: 18,
+      vy,
+      rot: rand(-0.6, 0.6),
+      spin: rand(-1.2, 1.2),
+      taken: false,
+    });
   }
 
   function coffeePickupFX(now, x, y) {
-    // sound
     beepCoffee();
-
-    // background flash
     state.coffeeFlashUntil = now + 180;
 
-    // sparkles
     for (let i = 0; i < 18; i++) {
       particles.push({
         x, y,
-        vx: rand(-180, 180),
-        vy: rand(-240, 60),
+        vx: rand(-200, 200),
+        vy: rand(-260, 70),
         life: rand(0.35, 0.65),
         t: 0,
         r: rand(2, 4),
       });
     }
-    state.shake = Math.max(state.shake, 6);
+    state.shake = Math.max(state.shake, 7);
   }
 
   function loop(now) {
@@ -435,59 +419,75 @@
 
     let dt = (now - state.tPrev) / 1000;
     state.tPrev = now;
-    if (now < state.slowMoUntil) dt *= 0.35;
+    if (now < state.slowMoUntil) dt *= 0.45;
 
     const elapsed = now - state.tStart;
     const remaining = Math.max(0, state.timeLimit - elapsed);
     const diff = computeDifficulty(elapsed);
     updateUI(remaining);
 
-    // spawn issues
-    const spawnProb = diff.spawnRate * dt;
-    if (issues.length < diff.maxIssues) {
-      let n = 0;
-      while (Math.random() < spawnProb && n < 3) {
-        spawnIssue(now, diff.p);
-        n++;
-      }
+    // ===== HARD: 스폰 확률 계산 개선 (프레임 dt에 강함) =====
+    // Poisson-ish: dt가 커져도 일정하게
+    const expected = diff.spawnRate * dt;
+    let spawnCount = Math.floor(expected);
+    if (Math.random() < (expected - spawnCount)) spawnCount++;
+
+    // 초반에도 몰아치게: 약간의 버스트
+    if (Math.random() < (0.12 + diff.p * 0.08)) spawnCount++;
+
+    // maxIssues 안에서만
+    const room = Math.max(0, diff.maxIssues - issues.length);
+    spawnCount = Math.min(spawnCount, room, 6); // 한 프레임 최대 6개
+
+    for (let i = 0; i < spawnCount; i++) {
+      spawnIssue(now, diff);
     }
 
-    // spawn coffee (rarer)
-    const coffeeProb = (0.22 + diff.p * 0.20) * dt;
-    if (items.length < 2 && Math.random() < coffeeProb) {
-      spawnCoffee(now, diff.p);
+    // ===== HARD: 커피 더 희귀 =====
+    const coffeeProb = (0.09 + diff.p * 0.06) * dt; // 대폭 감소
+    if (items.length < 1 && Math.random() < coffeeProb) {
+      spawnCoffee(now, diff);
     }
 
-    // movement
+    // ===== movement =====
     const targetSpeed = (input.dash ? player.dashSpeed : player.speed);
 
     if (input.pointerActive) {
-      // 터치/마우스 드래그 시: 손가락 위치로 슬라이드
       const dx = input.pointerX - player.x;
       const step = clamp(dx, -targetSpeed * dt, targetSpeed * dt);
       player.x += step;
       player.vx = step / dt;
     } else {
-      // 키보드
       let ax = 0;
       if (input.left) ax -= 1;
       if (input.right) ax += 1;
       player.vx = ax * targetSpeed;
       player.x += player.vx * dt;
     }
-    player.x = clamp(player.x, 24, W - 24);
+    player.x = clamp(player.x, 22, W - 22);
 
-    // update issues
-    for (const it of issues) { it.y += it.vy * dt; it.rot += it.spin * dt; }
-    // update items
-    for (const it of items) { it.y += it.vy * dt; it.rot += it.spin * dt; }
+    // ===== update issues/items =====
+    for (const it of issues) {
+      it.y += it.vy * dt;
+      it.rot += it.spin * dt;
 
-    // update particles
+      // HARD: drift 적용
+      const t = now / 1000;
+      it.x = it.x0 + Math.sin(it.driftPhase + t * it.driftSpd) * it.driftAmp;
+      it.x = clamp(it.x, 26, W - 26);
+    }
+
+    for (const it of items) {
+      it.y += it.vy * dt;
+      it.rot += it.spin * dt;
+    }
+
+    // particles
     particles = particles.filter(p => (p.t += dt) < p.life);
     for (const p of particles) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += 420 * dt; // gravity
+      p.vy += 420 * dt;
     }
 
     // collisions
@@ -496,7 +496,7 @@
     const rw = player.w, rh = player.h;
 
     for (const it of issues) {
-      if (!it.touched && intersectsCircleRect(it.x, it.y, it.r * 0.82, rx, ry, rw, rh)) {
+      if (!it.touched && intersectsCircleRect(it.x, it.y, it.r * 0.85, rx, ry, rw, rh)) {
         it.touched = true;
         hit(now);
       }
@@ -512,22 +512,24 @@
     }
 
     // cleanup
-    issues = issues.filter(it => it.y < H + it.r + 80);
-    items = items.filter(it => !it.taken && it.y < H + it.r + 80);
+    issues = issues.filter(it => it.y < H + it.r + 120);
+    items = items.filter(it => !it.taken && it.y < H + it.r + 120);
 
+    // score
     awardPoints(diff.p);
 
+    // render
     render(now, diff.p);
 
+    // end
     if (remaining <= 0) return end(true);
     if (state.hits >= 6) return end(false);
 
     requestAnimationFrame(loop);
   }
 
-  // ====== Office Illustration Background ======
+  // ===== Office illustration background (same vibe) =====
   function drawOfficeBackground(now) {
-    // sky/wall gradient
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, "rgba(70,110,210,0.55)");
     g.addColorStop(0.55, "rgba(120,200,255,0.18)");
@@ -535,13 +537,11 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // subtle coffee flash tint
     if (now < state.coffeeFlashUntil) {
       ctx.fillStyle = "rgba(255,230,160,0.10)";
       ctx.fillRect(0, 0, W, H);
     }
 
-    // window panels
     ctx.save();
     ctx.globalAlpha = 0.85;
     const winY = 62, winH = 170;
@@ -554,11 +554,11 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // city silhouettes inside window
       ctx.save();
       ctx.beginPath();
       roundRectPath(x+10, winY+10, 210, winH-20, 14);
       ctx.clip();
+
       const base = winY + winH - 12;
       ctx.fillStyle = "rgba(0,0,0,0.20)";
       for (let b = 0; b < 14; b++) {
@@ -567,7 +567,7 @@
         const bh = rand(30, 110);
         ctx.fillRect(bx, base - bh, bw, bh);
       }
-      // moving clouds
+
       const t = (now / 1000);
       ctx.fillStyle = "rgba(255,255,255,0.08)";
       for (let c = 0; c < 4; c++) {
@@ -581,46 +581,28 @@
     }
     ctx.restore();
 
-    // office desk strip
     ctx.save();
-    ctx.globalAlpha = 1;
     const deskY = H - 150;
     ctx.fillStyle = "rgba(15,15,22,0.55)";
     ctx.fillRect(0, deskY, W, 150);
-
-    // desk top highlight
     ctx.fillStyle = "rgba(255,255,255,0.05)";
     ctx.fillRect(0, deskY, W, 3);
-
-    // monitors + papers + plant (simple illustration)
     drawMonitor(160, deskY + 38, 210, 110);
     drawMonitor(430, deskY + 30, 260, 130);
     drawMonitor(730, deskY + 44, 180, 95);
-
     drawPaper(300, deskY + 112, 90, 52, -0.14);
     drawPaper(590, deskY + 118, 110, 58, 0.10);
-
     drawPlant(820, deskY + 120);
-
-    // coffee mug on desk (ambient)
     drawDeskMug(90, deskY + 118);
-
     ctx.restore();
-
-    // floor line (gameplay ground already exists, but add depth)
-    ctx.fillStyle = "rgba(255,255,255,0.04)";
-    ctx.fillRect(0, GROUND_Y + 16, W, 2);
   }
 
   function drawMonitor(x, y, w, h) {
     ctx.save();
-    // stand
     ctx.fillStyle = "rgba(255,255,255,0.10)";
     roundRectPath(x + w*0.42, y + h + 6, w*0.16, 20, 8);
     ctx.fill();
     ctx.fillRect(x + w*0.35, y + h + 22, w*0.30, 6);
-
-    // bezel
     roundRectPath(x, y, w, h, 16);
     ctx.fillStyle = "rgba(255,255,255,0.10)";
     ctx.fill();
@@ -628,7 +610,6 @@
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // screen
     ctx.save();
     ctx.beginPath();
     roundRectPath(x+10, y+10, w-20, h-20, 12);
@@ -638,14 +619,11 @@
     gg.addColorStop(1, "rgba(255,120,180,0.10)");
     ctx.fillStyle = gg;
     ctx.fillRect(x+10, y+10, w-20, h-20);
-
-    // fake UI lines
     ctx.fillStyle = "rgba(255,255,255,0.10)";
     for (let i=0;i<6;i++) ctx.fillRect(x+20, y+24+i*14, w-60, 6);
     ctx.fillStyle = "rgba(255,230,160,0.12)";
     ctx.fillRect(x+20, y+h-42, w-90, 10);
     ctx.restore();
-
     ctx.restore();
   }
 
@@ -666,7 +644,6 @@
 
   function drawPlant(x, y) {
     ctx.save();
-    // pot
     roundRectPath(x-22, y-14, 44, 28, 10);
     ctx.fillStyle = "rgba(255,255,255,0.10)";
     ctx.fill();
@@ -674,7 +651,6 @@
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // leaves
     ctx.fillStyle = "rgba(120,255,180,0.10)";
     ctx.strokeStyle = "rgba(120,255,180,0.20)";
     ctx.lineWidth = 2;
@@ -689,7 +665,6 @@
 
   function drawDeskMug(x, y) {
     ctx.save();
-    // mug body
     roundRectPath(x-18, y-18, 36, 36, 12);
     ctx.fillStyle = "rgba(255,230,160,0.10)";
     ctx.fill();
@@ -697,14 +672,12 @@
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // handle
     ctx.beginPath();
     ctx.arc(x+20, y-2, 10, -Math.PI/2, Math.PI/2);
     ctx.strokeStyle = "rgba(255,230,160,0.22)";
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // steam
     ctx.globalAlpha = 0.25;
     ctx.strokeStyle = "rgba(255,255,255,0.25)";
     ctx.lineWidth = 2;
@@ -728,33 +701,25 @@
     ctx.closePath();
   }
 
-  // ====== Render ======
   function render(now, intensity) {
-    // camera shake
     const shake = state.shake;
     const sx = shake ? rand(-shake, shake) : 0;
     const sy = shake ? rand(-shake, shake) : 0;
-    state.shake = Math.max(0, state.shake - 0.8);
+    state.shake = Math.max(0, state.shake - 0.9);
 
     ctx.save();
     ctx.clearRect(0, 0, W, H);
     ctx.translate(sx, sy);
 
-    // office illustration bg
     drawOfficeBackground(now);
 
-    // gameplay ground line
+    // ground
     ctx.fillStyle = "rgba(255,255,255,0.10)";
     ctx.fillRect(0, GROUND_Y + 16, W, 2);
 
-    // issues
     for (const it of issues) drawIssue(it, intensity);
-    // items
     for (const it of items) drawItem(it);
-    // particles
     drawParticles();
-
-    // player
     drawPlayer(now);
 
     ctx.restore();
@@ -774,7 +739,7 @@
     ctx.stroke();
 
     ctx.rotate(-it.rot);
-    ctx.font = `700 ${Math.max(12, Math.floor(it.r * 0.55))}px ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR"`;
+    ctx.font = `800 ${Math.max(12, Math.floor(it.r * 0.52))}px ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR"`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "rgba(255,255,255,0.92)";
@@ -785,7 +750,7 @@
       ctx.globalAlpha = 0.10 + intensity * 0.12;
       ctx.beginPath();
       ctx.arc(0, 0, it.r + 10 + intensity * 10, 0, Math.PI*2);
-      ctx.strokeStyle = "rgba(160,160,255,1)";
+      ctx.strokeStyle = "rgba(255,120,120,1)";
       ctx.lineWidth = 2;
       ctx.stroke();
     }
@@ -800,7 +765,6 @@
     ctx.translate(it.x, it.y);
     ctx.rotate(it.rot);
 
-    // bubble
     ctx.beginPath();
     ctx.arc(0, 0, it.r, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255,255,255,0.16)";
@@ -809,15 +773,13 @@
     ctx.strokeStyle = "rgba(255,255,255,0.35)";
     ctx.stroke();
 
-    // icon
     ctx.rotate(-it.rot);
-    ctx.font = `800 ${Math.floor(it.r * 1.25)}px ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR"`;
+    ctx.font = `900 ${Math.floor(it.r * 1.25)}px ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR"`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "rgba(255,255,255,0.92)";
     ctx.fillText("☕", 0, 1);
 
-    // glow
     ctx.globalAlpha = 0.14;
     ctx.beginPath();
     ctx.arc(0, 0, it.r + 11, 0, Math.PI*2);
@@ -831,7 +793,7 @@
   function drawParticles() {
     for (const p of particles) {
       const a = 1 - (p.t / p.life);
-      ctx.globalAlpha = a * 0.8;
+      ctx.globalAlpha = a * 0.85;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
       ctx.fillStyle = "rgba(255,230,160,1)";
@@ -847,38 +809,33 @@
     ctx.save();
     ctx.translate(player.x, player.y);
 
-    // body
     ctx.beginPath();
-    const w = player.w, h = player.h;
-    roundRectMini(-w/2, -h/2, w, h, 10);
-    ctx.fillStyle = inv ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.18)";
+    roundRectMini(-player.w/2, -player.h/2, player.w, player.h, 10);
+    ctx.fillStyle = inv ? "rgba(255,255,255,0.34)" : "rgba(255,255,255,0.18)";
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.strokeStyle = inv ? "rgba(255,200,120,0.85)" : "rgba(255,255,255,0.35)";
     ctx.stroke();
 
-    // face-ish
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.beginPath(); ctx.arc(-8, -2, 2.2, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc( 8, -2, 2.2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.86)";
+    ctx.beginPath(); ctx.arc(-7, -2, 2.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( 7, -2, 2.1, 0, Math.PI*2); ctx.fill();
     ctx.beginPath();
     ctx.arc(0, 6, 5, 0, Math.PI, false);
     ctx.strokeStyle = "rgba(255,255,255,0.7)";
     ctx.lineWidth = 1.6;
     ctx.stroke();
 
-    // dash trail
     if (input.dash && Math.abs(player.vx) > 1) {
       ctx.globalAlpha = 0.35;
       ctx.fillStyle = "rgba(255,255,255,0.20)";
       for (let i=1; i<=3; i++) {
-        roundRectMini(-w/2 - i*18 * Math.sign(player.vx || 1), -h/2, w, h, 10);
+        roundRectMini(-player.w/2 - i*18 * Math.sign(player.vx || 1), -player.h/2, player.w, player.h, 10);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
     }
 
-    // invuln ring
     if (inv) {
       ctx.globalAlpha = 0.18 + 0.12 * Math.sin(now / 60);
       ctx.beginPath();
@@ -919,10 +876,10 @@
   function drawSplash() {
     ctx.clearRect(0, 0, W, H);
     drawOfficeBackground(performance.now());
-    ctx.fillStyle = "rgba(0,0,0,0.32)";
+    ctx.fillStyle = "rgba(0,0,0,0.36)";
     ctx.fillRect(0,0,W,H);
     drawCenteredText(
-      ["이슈 회피 60초", "버티면 승리. 6번 맞으면 종료", "시작 버튼 또는 Enter (모바일은 화면 드래그)"],
+      ["이슈 회피 60초 — HARD", "초반부터 빡세게 옵니다. 커피는 희귀템.", "시작 버튼 또는 Enter (모바일은 드래그)"],
       H/2 - 20
     );
   }
@@ -930,7 +887,7 @@
   function drawPaused() {
     render(performance.now(), 0.5);
     ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.40)";
+    ctx.fillStyle = "rgba(0,0,0,0.42)";
     ctx.fillRect(0,0,W,H);
     drawCenteredText(["일시정지", "P로 재개"], H/2 - 10);
     ctx.restore();
@@ -939,7 +896,7 @@
   function drawEnd(win) {
     render(performance.now(), 1.0);
     ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.48)";
+    ctx.fillStyle = "rgba(0,0,0,0.52)";
     ctx.fillRect(0,0,W,H);
     const title = win ? WIN_TITLE : pick(LOSE_TITLES);
     const sub1 = `점수: ${state.score} | 피격: ${state.hits} | 최고: ${bestScore}`;
@@ -948,8 +905,7 @@
     ctx.restore();
   }
 
-  // ====== Inputs ======
-  // keyboard
+  // ===== Inputs =====
   window.addEventListener("keydown", (e) => {
     const k = e.key.toLowerCase();
     if (k === "arrowleft" || k === "a") input.left = true;
@@ -970,35 +926,26 @@
     if (k === "shift") input.dash = false;
   });
 
-  // pointer/touch: drag to move
   function canvasToGameX(clientX) {
     const rect = canvas.getBoundingClientRect();
     const nx = (clientX - rect.left) / rect.width;
-    return clamp(nx * W, 24, W - 24);
+    return clamp(nx * W, 22, W - 22);
   }
 
   canvas.addEventListener("pointerdown", (e) => {
-    ensureAudio(); // user gesture for audio unlock
+    ensureAudio();
     canvas.setPointerCapture(e.pointerId);
     input.pointerActive = true;
     input.pointerX = canvasToGameX(e.clientX);
     if (!state.running) start();
   });
-
   canvas.addEventListener("pointermove", (e) => {
     if (!input.pointerActive) return;
     input.pointerX = canvasToGameX(e.clientX);
   });
+  canvas.addEventListener("pointerup", () => { input.pointerActive = false; });
+  canvas.addEventListener("pointercancel", () => { input.pointerActive = false; });
 
-  canvas.addEventListener("pointerup", () => {
-    input.pointerActive = false;
-  });
-
-  canvas.addEventListener("pointercancel", () => {
-    input.pointerActive = false;
-  });
-
-  // Mobile dash button (press & hold)
   ui.dashBtn.addEventListener("pointerdown", (e) => {
     ensureAudio();
     input.dash = true;
@@ -1019,4 +966,5 @@
 </script>
 </body>
 </html>
+
 
