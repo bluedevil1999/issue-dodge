@@ -1,0 +1,1022 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>이슈 회피 60초</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      display: grid;
+      place-items: center;
+      height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", Arial;
+      background: radial-gradient(1200px 700px at 50% 30%, rgba(120,120,255,.14), transparent 55%),
+                  radial-gradient(900px 600px at 20% 80%, rgba(255,120,180,.12), transparent 55%),
+                  linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.02));
+    }
+    .wrap {
+      width: min(900px, 94vw);
+      display: grid;
+      gap: 12px;
+      position: relative;
+    }
+    .hud {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      opacity: .95;
+    }
+    .pill {
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(127,127,127,.35);
+      backdrop-filter: blur(6px);
+      background: rgba(255,255,255,.06);
+    }
+    .btns { display: flex; gap: 8px; }
+    button {
+      cursor: pointer;
+      border: 1px solid rgba(127,127,127,.35);
+      background: rgba(255,255,255,.06);
+      color: inherit;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 650;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:hover { background: rgba(255,255,255,.10); }
+    canvas {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 18px;
+      border: 1px solid rgba(127,127,127,.35);
+      background: rgba(0,0,0,.35);
+      box-shadow: 0 18px 45px rgba(0,0,0,.18);
+      touch-action: none; /* 중요: 모바일 드래그가 스크롤로 안 먹게 */
+    }
+    .help {
+      font-size: 13px;
+      opacity: .85;
+      line-height: 1.5;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(127,127,127,.45);
+      background: rgba(255,255,255,.06);
+    }
+
+    /* 모바일 터치 컨트롤 */
+    .touchbar {
+      display: none;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      border: 1px solid rgba(127,127,127,.35);
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      backdrop-filter: blur(6px);
+    }
+    .touchhint { font-size: 12px; opacity: .9; }
+    .touchbtns { display: flex; gap: 8px; }
+    .dashBtn {
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-weight: 800;
+    }
+    .dashBtn.active {
+      background: rgba(255,230,160,.16);
+      border-color: rgba(255,230,160,.45);
+    }
+
+    @media (max-width: 720px) {
+      .hud { grid-template-columns: 1fr; }
+      .btns { justify-content: flex-start; }
+      .touchbar { display: flex; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hud">
+      <div class="stats">
+        <div class="pill">⏱️ 남은 시간: <span id="timeLeft">60.0</span>s</div>
+        <div class="pill">🏃 점수: <span id="score">0</span></div>
+        <div class="pill">🔥 난이도: <span id="level">1</span></div>
+        <div class="pill">💥 피격: <span id="hits">0</span></div>
+        <div class="pill">🥇 최고: <span id="best">0</span></div>
+      </div>
+      <div class="btns">
+        <button id="startBtn">시작</button>
+        <button id="restartBtn" disabled>재시작</button>
+      </div>
+    </div>
+
+    <!-- 모바일: 터치바 -->
+    <div class="touchbar" id="touchbar">
+      <div class="touchhint">📱 터치: 화면을 <b>드래그</b>해서 이동</div>
+      <div class="touchbtns">
+        <button class="dashBtn" id="dashBtn" aria-label="dash">DASH</button>
+      </div>
+    </div>
+
+    <canvas id="game" width="960" height="540" aria-label="game canvas"></canvas>
+
+    <div class="help">
+      PC 조작: <kbd>←</kbd>/<kbd>→</kbd> 또는 <kbd>A</kbd>/<kbd>D</kbd> 이동,
+      <kbd>Shift</kbd> 대시,
+      <kbd>P</kbd> 일시정지.
+      목표: <b>60초</b> 버티기. ☕ 먹으면 <b>2초 무적</b>.
+      (모바일은 드래그 이동 + DASH 버튼)
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const ui = {
+    timeLeft: document.getElementById("timeLeft"),
+    score: document.getElementById("score"),
+    level: document.getElementById("level"),
+    hits: document.getElementById("hits"),
+    best: document.getElementById("best"),
+    startBtn: document.getElementById("startBtn"),
+    restartBtn: document.getElementById("restartBtn"),
+    dashBtn: document.getElementById("dashBtn"),
+    touchbar: document.getElementById("touchbar"),
+  };
+
+  const W = canvas.width, H = canvas.height;
+  const GROUND_Y = H - 44;
+
+  const ISSUE_WORDS = [
+    "마감", "실장님 호출", "갑자기 회의", "긴급 수정", "메일 폭탄", "리뷰 반려",
+    "이해관계자 추가", "요구사항 변경", "데이터 안 맞음", "배포 장애", "QA 지옥",
+    "상무님 코멘트", "고객사 피드백", "범위 확장", "최종 최종 최종", "오늘까지"
+  ];
+
+  const WIN_TITLE = "당신은 이슈를 보고도 웃을 수 있는 사람";
+  const LOSE_TITLES = [
+    "💥 이슈가 이슈했다",
+    "📉 ‘최종 최종’에 당했다",
+    "🧯 불 끄러 갔다가 불이 됐다",
+    "🧠 뇌: 처리 불가 / 마음: 강제 종료",
+    "🚨 장애 발생: 사람(나)",
+    "🗂️ 요구사항 변경에 의해 사망",
+    "🫠 퇴근은 했는데, 내 영혼이 남아있다",
+    "🔁 다시 시도: 다음번엔 커피를 믿자",
+  ];
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[(Math.random() * arr.length) | 0];
+
+  // ====== Sound (Web Audio) ======
+  let audioCtx = null;
+  function ensureAudio() {
+    if (audioCtx) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    audioCtx = new Ctx();
+  }
+  function beepCoffee() {
+    ensureAudio();
+    if (!audioCtx) return;
+
+    // some browsers require resume after user gesture
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+
+    const t0 = audioCtx.currentTime;
+    const out = audioCtx.createGain();
+    out.gain.setValueAtTime(0.0001, t0);
+    out.gain.exponentialRampToValueAtTime(0.18, t0 + 0.01);
+    out.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+    out.connect(audioCtx.destination);
+
+    // 2-tone “sip” chord
+    const o1 = audioCtx.createOscillator();
+    const o2 = audioCtx.createOscillator();
+    o1.type = "triangle";
+    o2.type = "sine";
+
+    o1.frequency.setValueAtTime(740, t0);
+    o1.frequency.exponentialRampToValueAtTime(980, t0 + 0.12);
+
+    o2.frequency.setValueAtTime(440, t0);
+    o2.frequency.exponentialRampToValueAtTime(660, t0 + 0.12);
+
+    o1.connect(out);
+    o2.connect(out);
+    o1.start(t0);
+    o2.start(t0);
+    o1.stop(t0 + 0.23);
+    o2.stop(t0 + 0.23);
+  }
+
+  // ====== localStorage best ======
+  const BEST_KEY = "vibe_dodge_best_v3";
+  let bestScore = Number(localStorage.getItem(BEST_KEY) || "0");
+  ui.best.textContent = bestScore;
+
+  const state = {
+    running: false,
+    paused: false,
+    ended: false,
+    tStart: 0,
+    tPrev: 0,
+    timeLimit: 60_000,
+    score: 0,
+    hits: 0,
+    level: 1,
+    shake: 0,
+    slowMoUntil: 0,
+    coffeeFlashUntil: 0, // background tiny flash
+  };
+
+  const input = {
+    left: false,
+    right: false,
+    dash: false,
+    pointerActive: false,
+    pointerX: W / 2,
+  };
+
+  const player = {
+    x: W / 2,
+    y: GROUND_Y,
+    w: 40,
+    h: 22,
+    vx: 0,
+    speed: 460,
+    dashSpeed: 760,
+    invulnUntil: 0,
+  };
+
+  let issues = [];
+  let items = [];
+  let particles = [];
+
+  function reset() {
+    state.running = false;
+    state.paused = false;
+    state.ended = false;
+    state.tStart = 0;
+    state.tPrev = 0;
+    state.score = 0;
+    state.hits = 0;
+    state.level = 1;
+    state.shake = 0;
+    state.slowMoUntil = 0;
+    state.coffeeFlashUntil = 0;
+
+    player.x = W / 2;
+    player.vx = 0;
+    player.invulnUntil = 0;
+
+    issues = [];
+    items = [];
+    particles = [];
+
+    updateUI(60_000);
+    drawSplash();
+  }
+
+  function updateUI(remainingMs) {
+    ui.timeLeft.textContent = (remainingMs / 1000).toFixed(1);
+    ui.score.textContent = state.score;
+    ui.level.textContent = state.level;
+    ui.hits.textContent = state.hits;
+    ui.best.textContent = bestScore;
+  }
+
+  function start() {
+    if (state.running) return;
+    ensureAudio(); // init attempt
+    state.running = true;
+    state.paused = false;
+    state.ended = false;
+    state.tStart = performance.now();
+    state.tPrev = state.tStart;
+
+    ui.startBtn.disabled = true;
+    ui.restartBtn.disabled = false;
+
+    requestAnimationFrame(loop);
+  }
+
+  function end(win) {
+    state.running = false;
+    state.ended = true;
+    ui.startBtn.disabled = false;
+    ui.restartBtn.disabled = false;
+
+    if (state.score > bestScore) {
+      bestScore = state.score;
+      localStorage.setItem(BEST_KEY, String(bestScore));
+    }
+    drawEnd(win);
+  }
+
+  function togglePause() {
+    if (!state.running) return;
+    state.paused = !state.paused;
+    if (!state.paused) {
+      state.tPrev = performance.now();
+      requestAnimationFrame(loop);
+    } else {
+      drawPaused();
+    }
+  }
+
+  function spawnIssue(now, intensity) {
+    const size = rand(26, 44) + intensity * 18;
+    const x = rand(40, W - 40);
+    const y = -size - rand(0, 140);
+    const vy = rand(140, 220) + intensity * rand(160, 320);
+    issues.push({
+      x, y,
+      r: size,
+      vy,
+      word: pick(ISSUE_WORDS),
+      rot: rand(-0.8, 0.8),
+      spin: rand(-1.6, 1.6),
+      touched: false,
+    });
+  }
+
+  function spawnCoffee(now, intensity) {
+    const x = rand(50, W - 50);
+    const y = -40 - rand(0, 200);
+    const vy = rand(120, 190) + intensity * 120;
+    items.push({
+      kind: "coffee",
+      x, y,
+      r: 18,
+      vy,
+      rot: rand(-0.6, 0.6),
+      spin: rand(-1.2, 1.2),
+      taken: false,
+    });
+  }
+
+  function computeDifficulty(elapsedMs) {
+    const p = clamp(elapsedMs / state.timeLimit, 0, 1);
+    state.level = 1 + Math.floor(p * 7);
+    return {
+      p,
+      spawnRate: 1.2 + p * 4.0,
+      maxIssues: 10 + Math.floor(p * 16),
+    };
+  }
+
+  function intersectsCircleRect(cx, cy, r, rx, ry, rw, rh) {
+    const closestX = clamp(cx, rx, rx + rw);
+    const closestY = clamp(cy, ry, ry + rh);
+    const dx = cx - closestX;
+    const dy = cy - closestY;
+    return (dx*dx + dy*dy) <= r*r;
+  }
+
+  function awardPoints(intensity) {
+    state.score += 1 + Math.floor(intensity * 3);
+  }
+
+  function hit(now) {
+    if (now < player.invulnUntil) return;
+    state.hits += 1;
+    state.shake = 10;
+    player.invulnUntil = now + 900;
+    state.slowMoUntil = now + 260;
+    state.score = Math.max(0, state.score - 12);
+  }
+
+  function coffeePickupFX(now, x, y) {
+    // sound
+    beepCoffee();
+
+    // background flash
+    state.coffeeFlashUntil = now + 180;
+
+    // sparkles
+    for (let i = 0; i < 18; i++) {
+      particles.push({
+        x, y,
+        vx: rand(-180, 180),
+        vy: rand(-240, 60),
+        life: rand(0.35, 0.65),
+        t: 0,
+        r: rand(2, 4),
+      });
+    }
+    state.shake = Math.max(state.shake, 6);
+  }
+
+  function loop(now) {
+    if (!state.running || state.paused) return;
+
+    let dt = (now - state.tPrev) / 1000;
+    state.tPrev = now;
+    if (now < state.slowMoUntil) dt *= 0.35;
+
+    const elapsed = now - state.tStart;
+    const remaining = Math.max(0, state.timeLimit - elapsed);
+    const diff = computeDifficulty(elapsed);
+    updateUI(remaining);
+
+    // spawn issues
+    const spawnProb = diff.spawnRate * dt;
+    if (issues.length < diff.maxIssues) {
+      let n = 0;
+      while (Math.random() < spawnProb && n < 3) {
+        spawnIssue(now, diff.p);
+        n++;
+      }
+    }
+
+    // spawn coffee (rarer)
+    const coffeeProb = (0.22 + diff.p * 0.20) * dt;
+    if (items.length < 2 && Math.random() < coffeeProb) {
+      spawnCoffee(now, diff.p);
+    }
+
+    // movement
+    const targetSpeed = (input.dash ? player.dashSpeed : player.speed);
+
+    if (input.pointerActive) {
+      // 터치/마우스 드래그 시: 손가락 위치로 슬라이드
+      const dx = input.pointerX - player.x;
+      const step = clamp(dx, -targetSpeed * dt, targetSpeed * dt);
+      player.x += step;
+      player.vx = step / dt;
+    } else {
+      // 키보드
+      let ax = 0;
+      if (input.left) ax -= 1;
+      if (input.right) ax += 1;
+      player.vx = ax * targetSpeed;
+      player.x += player.vx * dt;
+    }
+    player.x = clamp(player.x, 24, W - 24);
+
+    // update issues
+    for (const it of issues) { it.y += it.vy * dt; it.rot += it.spin * dt; }
+    // update items
+    for (const it of items) { it.y += it.vy * dt; it.rot += it.spin * dt; }
+
+    // update particles
+    particles = particles.filter(p => (p.t += dt) < p.life);
+    for (const p of particles) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 420 * dt; // gravity
+    }
+
+    // collisions
+    const rx = player.x - player.w/2;
+    const ry = player.y - player.h/2;
+    const rw = player.w, rh = player.h;
+
+    for (const it of issues) {
+      if (!it.touched && intersectsCircleRect(it.x, it.y, it.r * 0.82, rx, ry, rw, rh)) {
+        it.touched = true;
+        hit(now);
+      }
+    }
+
+    for (const it of items) {
+      if (it.kind === "coffee" && !it.taken &&
+          intersectsCircleRect(it.x, it.y, it.r * 0.95, rx, ry, rw, rh)) {
+        it.taken = true;
+        player.invulnUntil = Math.max(player.invulnUntil, now + 2000);
+        coffeePickupFX(now, it.x, it.y);
+      }
+    }
+
+    // cleanup
+    issues = issues.filter(it => it.y < H + it.r + 80);
+    items = items.filter(it => !it.taken && it.y < H + it.r + 80);
+
+    awardPoints(diff.p);
+
+    render(now, diff.p);
+
+    if (remaining <= 0) return end(true);
+    if (state.hits >= 6) return end(false);
+
+    requestAnimationFrame(loop);
+  }
+
+  // ====== Office Illustration Background ======
+  function drawOfficeBackground(now) {
+    // sky/wall gradient
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "rgba(70,110,210,0.55)");
+    g.addColorStop(0.55, "rgba(120,200,255,0.18)");
+    g.addColorStop(1, "rgba(20,20,30,0.45)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // subtle coffee flash tint
+    if (now < state.coffeeFlashUntil) {
+      ctx.fillStyle = "rgba(255,230,160,0.10)";
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // window panels
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    const winY = 62, winH = 170;
+    for (let i = 0; i < 3; i++) {
+      const x = 90 + i * 270;
+      roundRectPath(x, winY, 230, winH, 18);
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.22)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // city silhouettes inside window
+      ctx.save();
+      ctx.beginPath();
+      roundRectPath(x+10, winY+10, 210, winH-20, 14);
+      ctx.clip();
+      const base = winY + winH - 12;
+      ctx.fillStyle = "rgba(0,0,0,0.20)";
+      for (let b = 0; b < 14; b++) {
+        const bx = x + 10 + b * 18 + rand(-2, 2);
+        const bw = rand(10, 20);
+        const bh = rand(30, 110);
+        ctx.fillRect(bx, base - bh, bw, bh);
+      }
+      // moving clouds
+      const t = (now / 1000);
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      for (let c = 0; c < 4; c++) {
+        const cx = x + 20 + ((t*18 + c*80) % 260);
+        const cy = winY + 26 + c * 22;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 26, 10, 0, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    ctx.restore();
+
+    // office desk strip
+    ctx.save();
+    ctx.globalAlpha = 1;
+    const deskY = H - 150;
+    ctx.fillStyle = "rgba(15,15,22,0.55)";
+    ctx.fillRect(0, deskY, W, 150);
+
+    // desk top highlight
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillRect(0, deskY, W, 3);
+
+    // monitors + papers + plant (simple illustration)
+    drawMonitor(160, deskY + 38, 210, 110);
+    drawMonitor(430, deskY + 30, 260, 130);
+    drawMonitor(730, deskY + 44, 180, 95);
+
+    drawPaper(300, deskY + 112, 90, 52, -0.14);
+    drawPaper(590, deskY + 118, 110, 58, 0.10);
+
+    drawPlant(820, deskY + 120);
+
+    // coffee mug on desk (ambient)
+    drawDeskMug(90, deskY + 118);
+
+    ctx.restore();
+
+    // floor line (gameplay ground already exists, but add depth)
+    ctx.fillStyle = "rgba(255,255,255,0.04)";
+    ctx.fillRect(0, GROUND_Y + 16, W, 2);
+  }
+
+  function drawMonitor(x, y, w, h) {
+    ctx.save();
+    // stand
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    roundRectPath(x + w*0.42, y + h + 6, w*0.16, 20, 8);
+    ctx.fill();
+    ctx.fillRect(x + w*0.35, y + h + 22, w*0.30, 6);
+
+    // bezel
+    roundRectPath(x, y, w, h, 16);
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.20)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // screen
+    ctx.save();
+    ctx.beginPath();
+    roundRectPath(x+10, y+10, w-20, h-20, 12);
+    ctx.clip();
+    const gg = ctx.createLinearGradient(x, y, x+w, y+h);
+    gg.addColorStop(0, "rgba(120,170,255,0.18)");
+    gg.addColorStop(1, "rgba(255,120,180,0.10)");
+    ctx.fillStyle = gg;
+    ctx.fillRect(x+10, y+10, w-20, h-20);
+
+    // fake UI lines
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    for (let i=0;i<6;i++) ctx.fillRect(x+20, y+24+i*14, w-60, 6);
+    ctx.fillStyle = "rgba(255,230,160,0.12)";
+    ctx.fillRect(x+20, y+h-42, w-90, 10);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  function drawPaper(x, y, w, h, rot) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    roundRectPath(-w/2, -h/2, w, h, 10);
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    for (let i=0;i<4;i++) ctx.fillRect(-w/2+10, -h/2+12+i*10, w-20, 4);
+    ctx.restore();
+  }
+
+  function drawPlant(x, y) {
+    ctx.save();
+    // pot
+    roundRectPath(x-22, y-14, 44, 28, 10);
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // leaves
+    ctx.fillStyle = "rgba(120,255,180,0.10)";
+    ctx.strokeStyle = "rgba(120,255,180,0.20)";
+    ctx.lineWidth = 2;
+    for (let i=0;i<6;i++){
+      ctx.beginPath();
+      ctx.moveTo(x, y-14);
+      ctx.quadraticCurveTo(x-24+ i*8, y-55 - (i%2)*10, x-6+i*2, y-24);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawDeskMug(x, y) {
+    ctx.save();
+    // mug body
+    roundRectPath(x-18, y-18, 36, 36, 12);
+    ctx.fillStyle = "rgba(255,230,160,0.10)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,230,160,0.22)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // handle
+    ctx.beginPath();
+    ctx.arc(x+20, y-2, 10, -Math.PI/2, Math.PI/2);
+    ctx.strokeStyle = "rgba(255,230,160,0.22)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // steam
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.lineWidth = 2;
+    for (let i=0;i<3;i++){
+      ctx.beginPath();
+      ctx.moveTo(x-8+i*8, y-22);
+      ctx.quadraticCurveTo(x-18+i*8, y-40, x-6+i*8, y-54);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function roundRectPath(x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  // ====== Render ======
+  function render(now, intensity) {
+    // camera shake
+    const shake = state.shake;
+    const sx = shake ? rand(-shake, shake) : 0;
+    const sy = shake ? rand(-shake, shake) : 0;
+    state.shake = Math.max(0, state.shake - 0.8);
+
+    ctx.save();
+    ctx.clearRect(0, 0, W, H);
+    ctx.translate(sx, sy);
+
+    // office illustration bg
+    drawOfficeBackground(now);
+
+    // gameplay ground line
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    ctx.fillRect(0, GROUND_Y + 16, W, 2);
+
+    // issues
+    for (const it of issues) drawIssue(it, intensity);
+    // items
+    for (const it of items) drawItem(it);
+    // particles
+    drawParticles();
+
+    // player
+    drawPlayer(now);
+
+    ctx.restore();
+  }
+
+  function drawIssue(it, intensity) {
+    ctx.save();
+    ctx.translate(it.x, it.y);
+    ctx.rotate(it.rot);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, it.r, 0, Math.PI * 2);
+    ctx.fillStyle = it.touched ? "rgba(255,80,80,0.35)" : "rgba(255,255,255,0.12)";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = it.touched ? "rgba(255,110,110,0.55)" : "rgba(255,255,255,0.26)";
+    ctx.stroke();
+
+    ctx.rotate(-it.rot);
+    ctx.font = `700 ${Math.max(12, Math.floor(it.r * 0.55))}px ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR"`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    const s = it.word.length > 9 ? it.word.slice(0, 9) + "…" : it.word;
+    ctx.fillText(s, 0, 0);
+
+    if (!it.touched) {
+      ctx.globalAlpha = 0.10 + intensity * 0.12;
+      ctx.beginPath();
+      ctx.arc(0, 0, it.r + 10 + intensity * 10, 0, Math.PI*2);
+      ctx.strokeStyle = "rgba(160,160,255,1)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawItem(it) {
+    if (it.kind !== "coffee") return;
+
+    ctx.save();
+    ctx.translate(it.x, it.y);
+    ctx.rotate(it.rot);
+
+    // bubble
+    ctx.beginPath();
+    ctx.arc(0, 0, it.r, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.16)";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx.stroke();
+
+    // icon
+    ctx.rotate(-it.rot);
+    ctx.font = `800 ${Math.floor(it.r * 1.25)}px ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR"`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.fillText("☕", 0, 1);
+
+    // glow
+    ctx.globalAlpha = 0.14;
+    ctx.beginPath();
+    ctx.arc(0, 0, it.r + 11, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(255,230,160,1)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    for (const p of particles) {
+      const a = 1 - (p.t / p.life);
+      ctx.globalAlpha = a * 0.8;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = "rgba(255,230,160,1)";
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPlayer(now) {
+    const inv = now < player.invulnUntil;
+    const invLeft = Math.max(0, player.invulnUntil - now);
+
+    ctx.save();
+    ctx.translate(player.x, player.y);
+
+    // body
+    ctx.beginPath();
+    const w = player.w, h = player.h;
+    roundRectMini(-w/2, -h/2, w, h, 10);
+    ctx.fillStyle = inv ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.18)";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = inv ? "rgba(255,200,120,0.85)" : "rgba(255,255,255,0.35)";
+    ctx.stroke();
+
+    // face-ish
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.beginPath(); ctx.arc(-8, -2, 2.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( 8, -2, 2.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 6, 5, 0, Math.PI, false);
+    ctx.strokeStyle = "rgba(255,255,255,0.7)";
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
+    // dash trail
+    if (input.dash && Math.abs(player.vx) > 1) {
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = "rgba(255,255,255,0.20)";
+      for (let i=1; i<=3; i++) {
+        roundRectMini(-w/2 - i*18 * Math.sign(player.vx || 1), -h/2, w, h, 10);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // invuln ring
+    if (inv) {
+      ctx.globalAlpha = 0.18 + 0.12 * Math.sin(now / 60);
+      ctx.beginPath();
+      ctx.arc(0, 0, 32 + (invLeft/2000)*8, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255,230,160,1)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+  }
+
+  function roundRectMini(x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function drawCenteredText(lines, y0) {
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.94)";
+    lines.forEach((line, i) => {
+      ctx.font = (i === 0)
+        ? '900 30px ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR"'
+        : '650 18px ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR"';
+      ctx.fillText(line, W/2, y0 + i*34);
+    });
+    ctx.restore();
+  }
+
+  function drawSplash() {
+    ctx.clearRect(0, 0, W, H);
+    drawOfficeBackground(performance.now());
+    ctx.fillStyle = "rgba(0,0,0,0.32)";
+    ctx.fillRect(0,0,W,H);
+    drawCenteredText(
+      ["이슈 회피 60초", "버티면 승리. 6번 맞으면 종료", "시작 버튼 또는 Enter (모바일은 화면 드래그)"],
+      H/2 - 20
+    );
+  }
+
+  function drawPaused() {
+    render(performance.now(), 0.5);
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.40)";
+    ctx.fillRect(0,0,W,H);
+    drawCenteredText(["일시정지", "P로 재개"], H/2 - 10);
+    ctx.restore();
+  }
+
+  function drawEnd(win) {
+    render(performance.now(), 1.0);
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.48)";
+    ctx.fillRect(0,0,W,H);
+    const title = win ? WIN_TITLE : pick(LOSE_TITLES);
+    const sub1 = `점수: ${state.score} | 피격: ${state.hits} | 최고: ${bestScore}`;
+    const sub2 = "재시작 버튼 또는 R";
+    drawCenteredText([title, sub1, sub2], H/2 - 20);
+    ctx.restore();
+  }
+
+  // ====== Inputs ======
+  // keyboard
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (k === "arrowleft" || k === "a") input.left = true;
+    if (k === "arrowright" || k === "d") input.right = true;
+    if (k === "shift") input.dash = true;
+
+    if (k === "p") togglePause();
+    if (k === "enter") start();
+    if (k === "r") { reset(); start(); }
+
+    if (["arrowleft","arrowright"," "].includes(k)) e.preventDefault();
+  }, { passive: false });
+
+  window.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase();
+    if (k === "arrowleft" || k === "a") input.left = false;
+    if (k === "arrowright" || k === "d") input.right = false;
+    if (k === "shift") input.dash = false;
+  });
+
+  // pointer/touch: drag to move
+  function canvasToGameX(clientX) {
+    const rect = canvas.getBoundingClientRect();
+    const nx = (clientX - rect.left) / rect.width;
+    return clamp(nx * W, 24, W - 24);
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    ensureAudio(); // user gesture for audio unlock
+    canvas.setPointerCapture(e.pointerId);
+    input.pointerActive = true;
+    input.pointerX = canvasToGameX(e.clientX);
+    if (!state.running) start();
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    if (!input.pointerActive) return;
+    input.pointerX = canvasToGameX(e.clientX);
+  });
+
+  canvas.addEventListener("pointerup", () => {
+    input.pointerActive = false;
+  });
+
+  canvas.addEventListener("pointercancel", () => {
+    input.pointerActive = false;
+  });
+
+  // Mobile dash button (press & hold)
+  ui.dashBtn.addEventListener("pointerdown", (e) => {
+    ensureAudio();
+    input.dash = true;
+    ui.dashBtn.classList.add("active");
+    e.preventDefault();
+  }, { passive: false });
+
+  window.addEventListener("pointerup", () => {
+    input.dash = false;
+    ui.dashBtn.classList.remove("active");
+  });
+
+  ui.startBtn.addEventListener("click", start);
+  ui.restartBtn.addEventListener("click", () => { reset(); start(); });
+
+  reset();
+})();
+</script>
+</body>
+</html>
+
